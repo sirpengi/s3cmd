@@ -130,7 +130,6 @@ class ACL(object):
         self.grantees.append(grantee)
 
     def hasGrant(self, name, permission):
-        name = name.lower()
         permission = permission.upper()
 
         for grantee in self.grantees:
@@ -143,10 +142,22 @@ class ACL(object):
         return False;
 
     def grant(self, name, permission):
+        if name.startswith("group:"):
+            xsi_type = "Group"
+            tag = "URI"
+            name = name[6:]
+        elif '@' in name:
+            xsi_type = "AmazonCustomerByEmail"
+            tag = "EmailAddress"
+            name = name
+        else:
+            xsi_type = "CanonicalUser"
+            tag = "ID"
+            name = name.lower()
+
         if self.hasGrant(name, permission):
             return
 
-        name = name.lower()
         permission = permission.upper()
 
         if "ALL" == permission:
@@ -157,14 +168,9 @@ class ACL(object):
 
         grantee = Grantee()
         grantee.name = name
+        grantee.xsi_type = xsi_type
+        grantee.tag = tag
         grantee.permission = permission
-
-        if  name.find('@') <= -1: # ultra lame attempt to differenciate emails id from canonical ids
-            grantee.xsi_type = "CanonicalUser"
-            grantee.tag = "ID"
-        else:
-            grantee.xsi_type = "AmazonCustomerByEmail"
-            grantee.tag = "EmailAddress"
 
         self.appendGrantee(grantee)
 
